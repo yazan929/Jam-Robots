@@ -1,0 +1,187 @@
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  File              : robots.jam
+//  Author            : Mirlan Nurbekov
+//  Description       : Assignment 2, two robots move in the room to collect rewards and then leave.
+//  Created On        : Thu Jun  29 06:34:24 2021
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+GOALS:
+  ACHIEVE collect_rewords_and_exit_room;
+
+FACTS:
+  FACT robot1 0 0;
+  FACT robot2 7 0;
+  
+  FACT reward_one 3 4;
+  FACT reward_two 1 2;
+  FACT reward_three 4 3;
+  FACT reward_four 1 5;
+  FACT reward_five 2 6;
+  FACT reward_six 6 0;
+  FACT reward_seven 4 0;
+  FACT reward_eight 4 2;
+  FACT reward_nine 2 3;
+  FACT reward_ten 3 5;
+  
+  FACT exit 7 6;
+
+  FACT total_collected_rewards 1;
+
+PLAN: {
+  NAME: " Robots movements the top level goal."
+  DOCUMENTATION: "Robots initial positions, starting plans and exit condition."
+  GOAL: ACHIEVE collect_rewords_and_exit_room;
+
+  BODY:
+    RETRIEVE robot1 $x $y; 			         //initial position for robot 1
+    RETRIEVE robot2 $x_r2 $y_r2;		//initial position for robot 2
+    RETRIEVE exit $exit_x $exit_y;	         //exit position
+
+    EXECUTE println "\n-- Starting position for robot 1 x:"$x" y:"$y" --\n";
+
+    DO{
+      PERFORM move_right $x $y;
+      PERFORM move_up $x $y;
+    }WHILE: TEST(&& (!= $x $exit_x)(!= $y $exit_y));
+    
+    EXECUTE println "\n-- Starting position for robot 2 x:"$x_r2" y:"$y_r2" --\n";
+    
+    DO{
+      PERFORM move_left_r2 $x_r2 $y_r2;
+      PERFORM move_up_r2 $x_r2 $y_r2;
+    }WHILE: TEST(&& (!= $x_r2 $exit_x)(!= $y_r2 $exit_y));
+}
+
+PLAN: {
+  NAME: "Move up for Robot 1"
+  DOCUMENTATION: "In order to cover the specific part of the room Robot 1 should move up only when there is a specific coordinate match detected."
+  GOAL: ACHIEVE move_up $x $y;
+  BODY:
+  WHEN: TEST(|| (&& (== $x 3 )(== $y 0)) (&& (== $x 3 )(== $y 2))(&& (== $x 3 )(== $y 4)) 
+  (&& (== $x 0 )(== $y 1)) (&& (== $x 0 )(== $y 3)) (&& (== $x 0 )(== $y 5)))
+  {
+    ASSIGN $y (+ $y 1);
+    EXECUTE println "Move up to    | x: "$x" y: "$y"";
+
+    WHILE: TEST(> $x 0){
+      PERFORM move_left $x $y;
+    };
+    ASSIGN $y (+ $y 1);
+    EXECUTE println "Move up to    | x: "$x" y: "$y"";  
+    WHILE: TEST(&& (== $y 6) (< $x 7)){  
+      PERFORM move_right $x $y;
+    };
+  };
+}
+
+PLAN:{
+  NAME: "Move right for Robot 1"
+  DOCUMENTATION: "Robot 1 is assigned to leave the room after it collects all rewards on its way through moving right until exit."
+  GOAL: ACHIEVE move_right $x $y;
+  BODY:
+    RETRIEVE exit $exit_x $exit_y;
+        ASSIGN $x (+ $x 1);
+        EXECUTE println "Move right to | x: "$x" y: "$y"";
+        PERFORM collect_reward $x $y;
+    WHEN: TEST(&& (== $x $exit_x)(== $y $exit_y)){
+      EXECUTE println "\nROBOT 1 reached the EXIT and left the room\n";
+    };
+}
+PLAN:{
+  NAME: "Move left for Robot 1"
+  DOCUMENTATION: "Robot 1 moves left by current position x axis -1 because Robot 1 starts it's movement from moving right till end of it's territory."
+  GOAL: ACHIEVE move_left $x $y;
+  BODY:
+      ASSIGN $x (- $x 1);
+      EXECUTE println "Move left to  | x: "$x" y: "$y"";
+      PERFORM collect_reward $x $y;
+}
+PLAN: {
+  NAME: "Collect reward for Robot 1"
+  DOCUMENTATION: "Compare the Robot 1 current xy position with all rewards xy positions and collect it if match."
+  GOAL: ACHIEVE collect_reward $x $y;
+
+  BODY:
+    RETRIEVE reward_one $r1x $r1y;
+    RETRIEVE reward_two $r2x $r2y;
+    RETRIEVE reward_three $r3x $r3y;
+    RETRIEVE reward_four $r4x $r4y;
+    RETRIEVE reward_five $r5x $r5y;
+    RETRIEVE total_collected_rewards $ctr;
+
+    WHEN: TEST(|| (&& (== $r1x $x )(== $r1y $y)) (&& (== $r2x $x)(== $r2y $y))
+    (&& (== $r3x $x)(== $r3y $y)) (&& (== $r4x $x)(== $r4y $y)) (&& (== $r5x $x)(== $r5y $y)))
+    {
+      UPDATE (total_collected_rewards) (total_collected_rewards (+ $ctr 1));  
+      EXECUTE println "\n*Position x:" $x " y:" $y " contains a reward\n*           Collecting...          \n  Reward "$ctr " collection SUCCESSFUL  **\n";
+    };
+}
+
+
+PLAN: {
+  NAME: "Move up for Robot 2"
+  DOCUMENTATION: "Robot 2 is assigned to leave the room through move up plan after it finished its path and collect remaining rewards."
+  GOAL: ACHIEVE move_up_r2 $x_r2 $y_r2;
+  BODY:
+    RETRIEVE exit $exit_x $exit_y;
+  WHEN: TEST(|| (&& (== $x_r2 4 )(== $y_r2 0)) (&& (== $x_r2 7 )(== $y_r2 1))(&& (== $x_r2 4 )(== $y_r2 2))
+  (&& (== $x_r2 7 )(== $y_r2 3)) (&& (== $x_r2 4 )(== $y_r2 4)) (&& (== $x_r2 7 )(== $y_r2 5)))
+  {
+    ASSIGN $y_r2 (+ $y_r2 1);
+    EXECUTE println "Move up to    | x: "$x_r2" y: "$y_r2"";
+    WHILE: TEST(< $x_r2 7){
+      PERFORM move_right_r2 $x_r2 $y_r2;
+    };
+    ASSIGN $y_r2 (+ $y_r2 1);
+    EXECUTE println "Move up to    | x: "$x_r2" y: "$y_r2"";
+    WHEN: TEST(&& (== $x_r2 $exit_x)(== $y_r2 $exit_y)){
+      EXECUTE println "\nROBOT 2 reached the EXIT and left the room\n";
+    };
+    WHEN: TEST(|| (!= $x_r2 7)(!= $y_r2 6)){ //TESTING
+    PERFORM move_left_r2 $x_r2 $y_r2;
+    };
+  };
+}
+PLAN:{
+  NAME: "Move right for Robot 2"
+  DOCUMENTATION: "Robot 2 moves right through current position x axis +1 because the Robot 2 starts from moving left till the wall."
+  GOAL: ACHIEVE move_right_r2 $x_r2 $y_r2;
+  BODY:
+        ASSIGN $x_r2 (+ $x_r2 1);
+        EXECUTE println "Move right to | x: "$x_r2" y: "$y_r2"";
+        PERFORM collect_reward_r2 $x_r2 $y_r2;
+}
+PLAN:{
+  NAME: "Move left for Robot 2"
+  DOCUMENTATION: "Robot 2 moves left through current position x axis -1 moving left till end of its territory."
+  GOAL: ACHIEVE move_left_r2 $x_r2 $y_r2;
+
+  BODY:
+      ASSIGN $x_r2 (- $x_r2 1);
+      EXECUTE println "Move left to  | x: "$x_r2" y: "$y_r2"";
+      PERFORM collect_reward_r2 $x_r2 $y_r2;
+}
+PLAN: {
+  NAME: "Collect reward for Robot 2"
+  DOCUMENTATION: "Compare the Robot 2 current xy position with all rewards xy positions and collect it if match."
+  GOAL: ACHIEVE collect_reward_r2 $x_r2 $y_r2;
+
+  BODY:
+    BODY:
+    RETRIEVE reward_six $r1x_r2 $r1y_r2;
+    RETRIEVE reward_seven $r2x_r2 $r2y_r2;
+    RETRIEVE reward_eight $r3x_r2 $r3y_r2;
+    RETRIEVE reward_nine $r4x_r2 $r4y_r2;
+    RETRIEVE reward_ten $r5x_r2 $r5y_r2;
+    RETRIEVE total_collected_rewards $ctr;
+
+    WHEN: TEST(|| (&& (== $r1x_r2 $x_r2 )(== $r1y_r2 $y_r2)) (&& (== $r2x_r2 $x_r2)(== $r2y_r2 $y_r2))
+    (&& (== $r3x_r2 $x_r2)(== $r3y_r2 $y_r2)) (&& (== $r4x_r2 $x_r2)(== $r4y_r2 $y_r2)) (&& (== $r5x_r2 $x_r2)(== $r5y_r2 $y_r2)))
+    {
+      UPDATE (total_collected_rewards) (total_collected_rewards (+ $ctr 1));
+            EXECUTE println "\n*Position x:" $x_r2 " y:" $y_r2 " contains a reward\n*           Collecting...          \n  Reward "$ctr " collection SUCCESSFUL  **\n";
+
+    };
+}
